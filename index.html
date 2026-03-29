@@ -2860,37 +2860,43 @@
         // Save task
         async function saveTask(event) {
             event.preventDefault();
-            
+
+            // Build clean task — no undefined values (Firebase rejects them)
+            const title = document.getElementById('task-title').value || '';
+            const description = document.getElementById('task-description').value || '';
+            const category = document.getElementById('task-category').value || 'Roleplay';
+            const priority = document.getElementById('task-priority').value || 'Moyenne';
+            const status = document.getElementById('task-status').value || 'À faire';
+            const deadline = document.getElementById('task-deadline').value || '';
+            const memberEl = document.getElementById('task-member');
+            const assignedTo = (window.editingTaskId && memberEl) ? (memberEl.value || 'unassigned') : 'unassigned';
+            const createdBy = (window.currentUser && window.currentUser.name) ? window.currentUser.name : 'user';
+
             const taskData = {
-                title: document.getElementById('task-title').value,
-                description: document.getElementById('task-description').value,
-                category: document.getElementById('task-category').value,
-                priority: document.getElementById('task-priority').value,
-                status: document.getElementById('task-status').value,
-                assignedTo: window.editingTaskId ? document.getElementById('task-member').value : 'unassigned',
-                deadline: document.getElementById('task-deadline').value,
-                images: currentImageData.length > 0 ? [...currentImageData] : []
+                title: title,
+                description: description,
+                category: category,
+                priority: priority,
+                status: status,
+                assignedTo: assignedTo,
+                deadline: deadline,
+                images: currentImageData.length > 0 ? [...currentImageData] : [],
+                createdBy: createdBy,
+                createdAt: new Date().toISOString()
             };
 
             if (window.editingTaskId) {
-                // Update local array for immediate feedback
                 const index = window.tasks.findIndex(t => t.id === window.editingTaskId);
                 if (index !== -1) {
                     window.tasks[index] = { ...window.tasks[index], ...taskData };
                 }
             } else {
-                // Add to local array for immediate feedback
                 taskData.id = Date.now();
-                taskData.createdAt = new Date().toISOString();
-                taskData.createdBy = (window.currentUser && window.currentUser.member) ? window.currentUser.member : (window.currentUser ? window.currentUser.name || 'user' : 'unassigned');
-                window.tasks.push(taskData); // Add to local array immediately
+                window.tasks.push(taskData);
             }
 
-            // Save to Firebase
             await window.saveTaskToFirebase(taskData);
             closeModal();
-            
-            // Force re-render to show changes immediately
             renderTasks();
             updateStats();
         }
